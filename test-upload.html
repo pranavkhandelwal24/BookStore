@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Upload</title>
+    <script>
+        function testUpload() {
+            const fileInput = document.getElementById('testFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            fetch('/bookstore/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response:', data);
+                if (data.success) {
+                    document.getElementById('result').innerHTML = 
+                        `<p style="color: green;">Upload successful!</p>
+                         <p>File URL: ${data.fileUrl}</p>
+                         <img src="${data.fileUrl}" style="max-width: 200px;">`;
+                } else {
+                    document.getElementById('result').innerHTML = 
+                        `<p style="color: red;">Upload failed: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = 
+                    `<p style="color: red;">Upload failed: ${error.message}</p>`;
+            });
+        }
+    </script>
+</head>
+<body>
+    <h2>Test Image Upload</h2>
+    <input type="file" id="testFile" accept="image/*">
+    <button onclick="testUpload()">Upload</button>
+    <div id="result"></div>
+</body>
+</html>

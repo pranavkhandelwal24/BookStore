@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Image Upload Test Suite</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Check Upload Endpoint</h3>
+        <button onclick="testEndpoint()">Test /upload endpoint</button>
+        <div id="endpoint-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: JavaScript Upload</h3>
+        <input type="file" id="jsFile" accept="image/*">
+        <button onclick="testJSUpload()">Upload via JavaScript</button>
+        <div id="js-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Form Upload</h3>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="file" id="formFile" accept="image/*" required>
+            <button type="button" onclick="testFormUpload()">Upload via Form</button>
+        </form>
+        <div id="form-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 4: Admin Session Check</h3>
+        <button onclick="checkAdminSession()">Check Admin Session</button>
+        <div id="session-result" class="result"></div>
+    </div>
+
+    <script>
+        function testEndpoint() {
+            const resultDiv = document.getElementById('endpoint-result');
+            resultDiv.innerHTML = '<div class="info">Testing endpoint...</div>';
+            
+            fetch('/bookstore/upload', {
+                method: 'GET'
+            })
+            .then(response => {
+                resultDiv.innerHTML = `<div class="info">Endpoint accessible. Status: ${response.status}</div>`;
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Endpoint not accessible: ${error.message}</div>`;
+            });
+        }
+        
+        function testJSUpload() {
+            const fileInput = document.getElementById('jsFile');
+            const file = fileInput.files[0];
+            const resultDiv = document.getElementById('js-result');
+            
+            if (!file) {
+                resultDiv.innerHTML = '<div class="error">Please select a file first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">Uploading...</div>';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            fetch('/bookstore/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response type:', response.headers.get('content-type'));
+                return response.text();
+            })
+            .then(text => {
+                console.log('Response text:', text);
+                try {
+                    const data = JSON.parse(text);
+                    if (data.success) {
+                        resultDiv.innerHTML = `
+                            <div class="success">Upload successful!</div>
+                            <div>File URL: ${data.fileUrl}</div>
+                            <img src="${data.fileUrl}" style="max-width: 200px; margin-top: 10px;">
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `<div class="error">Upload failed: ${data.error}</div>`;
+                    }
+                } catch (e) {
+                    resultDiv.innerHTML = `<div class="error">Invalid response: ${text}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                resultDiv.innerHTML = `<div class="error">Upload error: ${error.message}</div>`;
+            });
+        }
+        
+        function testFormUpload() {
+            const form = document.getElementById('uploadForm');
+            const formData = new FormData(form);
+            const resultDiv = document.getElementById('form-result');
+            
+            if (!formData.get('file') || formData.get('file').size === 0) {
+                resultDiv.innerHTML = '<div class="error">Please select a file first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">Uploading via form...</div>';
+            
+            fetch('/bookstore/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                try {
+                    const data = JSON.parse(text);
+                    if (data.success) {
+                        resultDiv.innerHTML = `
+                            <div class="success">Form upload successful!</div>
+                            <div>File URL: ${data.fileUrl}</div>
+                            <img src="${data.fileUrl}" style="max-width: 200px; margin-top: 10px;">
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `<div class="error">Form upload failed: ${data.error}</div>`;
+                    }
+                } catch (e) {
+                    resultDiv.innerHTML = `<div class="error">Invalid form response: ${text}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Form upload error: ${error.message}</div>`;
+            });
+        }
+        
+        function checkAdminSession() {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.innerHTML = '<div class="info">Checking admin session...</div>';
+            
+            fetch('/bookstore/admin', {
+                method: 'GET'
+            })
+            .then(response => {
+                if (response.status === 302 || response.url.includes('login')) {
+                    resultDiv.innerHTML = '<div class="error">Not logged in as admin. Please login first.</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="success">Admin session active</div>';
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Session check failed: ${error.message}</div>`;
+            });
+        }
+    </script>
+</body>
+</html>
